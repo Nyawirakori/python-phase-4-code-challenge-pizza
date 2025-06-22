@@ -48,10 +48,12 @@ class RestaurantsById(Resource):
      #Deleting restaurants by id
     def delete(self, id):
         restaurant = Restaurant.query.get(id)
-        db.session.delete(restaurant)
-        db.session.commit()
+        if restaurant:
+            db.session.delete(restaurant)
+            db.session.commit()
 
-        return make_response(f'{restaurant.name} was deleted successfully')
+            return make_response(f'{restaurant.name} was deleted successfully, 200')
+        return make_response({"error":"Restaurant not found"}, 404)
     
 api.add_resource(RestaurantsById, '/restaurants/<int:id>')
 
@@ -61,6 +63,47 @@ class Pizzas(Resource):
         return make_response(pizzas, 200)
     
 api.add_resource(Pizzas, '/pizzas')
+
+#creating a new RestaurantPizza(POST)
+class RestaurantPizzas(Resource):
+    def post(self):
+        data = request.get_json()
+
+        try:
+
+            new_rp = RestaurantPizza(
+                price=data.get("price"),
+                pizza_id=data.get("pizza_id"),
+                restaurant_id=data.get("restaurant_id")
+            )
+
+            db.session.add(new_rp)
+            db.session.commit()
+
+            # build response structure
+            response = {
+                "id": new_rp.id,
+                "price": new_rp.price,
+                "pizza_id": new_rp.pizza_id,
+                "restaurant_id": new_rp.restaurant_id,
+                "pizza": {
+                    "id": new_rp.pizza.id,
+                    "name": new_rp.pizza.name,
+                    "ingredients": new_rp.pizza.ingredients
+                },
+                "restaurant": {
+                    "id": new_rp.restaurant.id,
+                    "name": new_rp.restaurant.name,
+                    "address": new_rp.restaurant.address
+                }
+            }
+
+            return make_response(response, 201)
+
+        except Exception as e:
+            return make_response({"errors": [str(e)]}, 400)
+        
+api.add_resource(RestaurantPizzas, '/restaurant_pizzas')
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)
